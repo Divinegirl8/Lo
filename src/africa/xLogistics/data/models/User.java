@@ -16,6 +16,7 @@ public class User {
     private String phoneNumber;
     private Wallet wallet;
     private Address address;
+    private boolean isLoggedIn;
 
 
 }
