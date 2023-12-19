@@ -1,20 +1,12 @@
 package africa.xLogistics.services;
 
-import africa.xLogistics.data.models.Address;
-import africa.xLogistics.data.models.Booking;
-import africa.xLogistics.data.models.Customer;
-import africa.xLogistics.data.models.User;
-import africa.xLogistics.data.repositories.BookingRepository;
-import africa.xLogistics.data.repositories.UserRepository;
-import africa.xLogistics.dtos.requests.AddMoneyToWalletRequest;
-import africa.xLogistics.dtos.requests.BookingRequest;
-import africa.xLogistics.dtos.requests.LoginRequest;
-import africa.xLogistics.dtos.requests.RegisterRequest;
+import africa.xLogistics.data.models.*;
+import africa.xLogistics.data.repositories.*;
+import africa.xLogistics.dtos.requests.*;
 import africa.xLogistics.exceptions.*;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.math.BigDecimal;
@@ -29,13 +21,19 @@ class LogisticsServiceImplTest {
     UserRepository userRepository;
     @Autowired
     BookingRepository bookingRepository;
+    @Autowired
+    ReceiverRepository receiverRepository;
+    @Autowired
+    SenderRepository senderRepository;
 
 
 
     @AfterEach
     void cleanup() {
         userRepository.deleteAll();
-        bookingRepository.deleteAll();;
+        bookingRepository.deleteAll();
+        receiverRepository.deleteAll();
+        senderRepository.deleteAll();
 
     }
 
@@ -225,6 +223,72 @@ class LogisticsServiceImplTest {
         assertThrows(LowAmountError.class,()->  logisticsService.deductMoneyFromWallet(user.getId(),BigDecimal.valueOf(0)));
     }
 
+    @Test void registerUser_loginWithCorrectDetails_Add_ReceiverInfo(){
+        RegisterRequest registerRequest = checkRequest("username", "password", "emailAddress", "phoneNumber", checkAddress("123", "magodo", "Lagos", "Nigeria", "Benita street"));
+        logisticsService.register(registerRequest);
+
+        LoginRequest loginRequest = new LoginRequest();
+        loginRequest.setPassword("password");
+        loginRequest.setUsername("username");
+        logisticsService.login(loginRequest);
+
+        ReceiverRequest receiverRequest = new ReceiverRequest();
+        receiverRequest.setName("divine");
+        receiverRequest.setAddress(checkAddress("67","ikeja","lagos","Nigeria","7 tunde"));
+        receiverRequest.setEmailAddress("iam@ebun");
+        receiverRequest.setPhoneNumber("090876452");
+        logisticsService.addReceiverInfo(receiverRequest);
+        assertEquals(1, receiverRepository.count());
+    }
+
+    @Test void registerUser_loginWithCorrectDetails_Add_SenderInfo(){
+        RegisterRequest registerRequest = checkRequest("username", "password", "emailAddress", "phoneNumber", checkAddress("123", "magodo", "Lagos", "Nigeria", "Benita street"));
+        logisticsService.register(registerRequest);
+
+        LoginRequest loginRequest = new LoginRequest();
+        loginRequest.setPassword("password");
+        loginRequest.setUsername("username");
+        logisticsService.login(loginRequest);
+
+
+        SenderRequest senderRequest = new SenderRequest();
+        senderRequest.setName("divine");
+        senderRequest.setAddress(checkAddress("67","ikeja","lagos","Nigeria","7 tunde"));
+        senderRequest.setEmailAddress("iam@ebun");
+        senderRequest.setPhoneNumber("090876452");
+        logisticsService.addSenderInfo(senderRequest);
+        assertEquals(1, senderRepository.count());
+    }
+
+    @Test void registerUser_loginWithCorrectDetail_Add_SenderInfo_And_Add_Receiver_Info(){
+        RegisterRequest registerRequest = checkRequest("username", "password", "emailAddress", "phoneNumber", checkAddress("123", "magodo", "Lagos", "Nigeria", "Benita street"));
+        logisticsService.register(registerRequest);
+
+        LoginRequest loginRequest = new LoginRequest();
+        loginRequest.setPassword("password");
+        loginRequest.setUsername("username");
+        logisticsService.login(loginRequest);
+
+
+
+        ReceiverRequest receiverRequest = new ReceiverRequest();
+        receiverRequest.setName("divine");
+        receiverRequest.setAddress(checkAddress("67","ikeja","lagos","Nigeria","7 tunde"));
+        receiverRequest.setEmailAddress("iam@ebun");
+        receiverRequest.setPhoneNumber("090876452");
+        logisticsService.addReceiverInfo(receiverRequest);
+        assertEquals(1,receiverRepository.count());
+
+        SenderRequest senderRequest = new SenderRequest();
+        senderRequest.setName("divine");
+        senderRequest.setAddress(checkAddress("67","ikeja","lagos","Nigeria","7 tunde"));
+        senderRequest.setEmailAddress("iam@ebun");
+        senderRequest.setPhoneNumber("090876452");
+        logisticsService.addSenderInfo(senderRequest);
+        assertEquals(1, senderRepository.count());
+    }
+
+
 
     @Test void registerUser_loginWithCorrectDetails_bookService(){
         RegisterRequest registerRequest = checkRequest("username","password","emailAddress","phoneNumber",checkAddress("123","magodo","Lagos","Nigeria","Benita street"));
@@ -241,11 +305,21 @@ class LogisticsServiceImplTest {
         user.setUsername("divine");
         user.setAddress(checkAddress("123","magodo","Lagos","Nigeria","Benita street"));
 
-        Customer customer = new Customer();
-        customer.setEmail("my@gmail.com");
-        customer.setPhoneNumber("090");
-        customer.setName("seer");
-        customer.setHomeAddress(checkAddress("67","ikeja","lagos","Nigeria","7 tunde"));
+        SenderRequest senderRequest = new SenderRequest();
+        senderRequest.setEmailAddress("my@gmail.com");
+        senderRequest.setPhoneNumber("090");
+        senderRequest.setName("seer");
+        senderRequest.setAddress(checkAddress("67","ikeja","lagos","Nigeria","7 tunde"));
+
+        ReceiverRequest receiverRequest = new ReceiverRequest();
+        receiverRequest.setEmailAddress("my@gmail.com");
+        receiverRequest.setPhoneNumber("090");
+        receiverRequest.setName("seer");
+        receiverRequest.setAddress(checkAddress("67","ikeja","lagos","Nigeria","7 tunde"));
+
+       Sender sender =  logisticsService.addSenderInfo(senderRequest);
+       Receiver receiver = logisticsService.addReceiverInfo(receiverRequest);
+
 
         AddMoneyToWalletRequest addMoneyToWalletRequest = new AddMoneyToWalletRequest();
         addMoneyToWalletRequest.setUserId(user.getId());
@@ -255,8 +329,9 @@ class LogisticsServiceImplTest {
         BookingRequest bookingRequest = new BookingRequest();
         bookingRequest.setBookingCost(BigDecimal.valueOf(1000));
         bookingRequest.setParcelName("dress");
-        bookingRequest.setSenderInfo(user);
-        bookingRequest.setReceiverInfo(customer);
+        bookingRequest.setSenderId(sender.getId());
+        bookingRequest.setReceiverId(receiver.getId());
+        bookingRequest.setUserId(user.getId());
 
         logisticsService.bookService(bookingRequest);
 
@@ -280,11 +355,21 @@ class LogisticsServiceImplTest {
         user.setUsername("divine");
         user.setAddress(checkAddress("123","magodo","Lagos","Nigeria","Benita street"));
 
-        Customer customer = new Customer();
-        customer.setEmail("my@gmail.com");
-        customer.setPhoneNumber("090");
-        customer.setName("seer");
-        customer.setHomeAddress(checkAddress("67","ikeja","lagos","Nigeria","7 tunde"));
+        SenderRequest senderRequest = new SenderRequest();
+        senderRequest.setEmailAddress("my@gmail.com");
+        senderRequest.setPhoneNumber("090");
+        senderRequest.setName("seer");
+        senderRequest.setAddress(checkAddress("67","ikeja","lagos","Nigeria","7 tunde"));
+
+        ReceiverRequest receiverRequest = new ReceiverRequest();
+        receiverRequest.setEmailAddress("my@gmail.com");
+        receiverRequest.setPhoneNumber("090");
+        receiverRequest.setName("seer");
+        receiverRequest.setAddress(checkAddress("67","ikeja","lagos","Nigeria","7 tunde"));
+
+        Sender sender =  logisticsService.addSenderInfo(senderRequest);
+        Receiver receiver = logisticsService.addReceiverInfo(receiverRequest);
+
 
         AddMoneyToWalletRequest addMoneyToWalletRequest = new AddMoneyToWalletRequest();
         addMoneyToWalletRequest.setUserId(user.getId());
@@ -295,8 +380,9 @@ class LogisticsServiceImplTest {
         BookingRequest bookingRequest = new BookingRequest();
         bookingRequest.setBookingCost(BigDecimal.valueOf(1000));
         bookingRequest.setParcelName("dress");
-        bookingRequest.setSenderInfo(user);
-        bookingRequest.setReceiverInfo(customer);
+        bookingRequest.setSenderId(sender.getId());
+        bookingRequest.setReceiverId(receiver.getId());
+        bookingRequest.setUserId(user.getId());
 
         Booking booking  = logisticsService.bookService(bookingRequest);
         logisticsService.bookService(bookingRequest);
@@ -308,6 +394,100 @@ class LogisticsServiceImplTest {
     }
 
 
+
+    @Test void registerUser_loginWithCorrectDetails_bookService_WithIncorrectSenderDetails_Throws_An_Exception(){
+        RegisterRequest registerRequest = checkRequest("username","password","emailAddress","phoneNumber",checkAddress("123","magodo","Lagos","Nigeria","Benita street"));
+        logisticsService.register(registerRequest);
+
+        LoginRequest loginRequest = new LoginRequest();
+        loginRequest.setPassword("password");
+        loginRequest.setUsername("username");
+        logisticsService.login(loginRequest);
+
+        User user = new User();
+        user.setPhoneNumber("090");
+        user.setId(logisticsService.findAccountBelongingTo("username").getId());
+        user.setUsername("divine");
+        user.setAddress(checkAddress("123","magodo","Lagos","Nigeria","Benita street"));
+
+        SenderRequest senderRequest = new SenderRequest();
+        senderRequest.setEmailAddress("my@gmail.com");
+        senderRequest.setPhoneNumber("090");
+        senderRequest.setName("seer");
+        senderRequest.setAddress(checkAddress("67","ikeja","lagos","Nigeria","7 tunde"));
+
+        ReceiverRequest receiverRequest = new ReceiverRequest();
+        receiverRequest.setEmailAddress("my@gmail.com");
+        receiverRequest.setPhoneNumber("090");
+        receiverRequest.setName("seer");
+        receiverRequest.setAddress(checkAddress("67","ikeja","lagos","Nigeria","7 tunde"));
+
+
+        Receiver receiver = logisticsService.addReceiverInfo(receiverRequest);
+
+
+        AddMoneyToWalletRequest addMoneyToWalletRequest = new AddMoneyToWalletRequest();
+        addMoneyToWalletRequest.setUserId(user.getId());
+        addMoneyToWalletRequest.setAmount(BigDecimal.valueOf(1000));
+
+        logisticsService.addMoneyToWallet(addMoneyToWalletRequest);
+        BookingRequest bookingRequest = new BookingRequest();
+        bookingRequest.setBookingCost(BigDecimal.valueOf(1000));
+        bookingRequest.setParcelName("dress");
+        bookingRequest.setSenderId("SID4");
+        bookingRequest.setReceiverId(receiver.getId());
+
+        assertThrows(SenderIdNotFoundError.class,()-> logisticsService.bookService(bookingRequest) );
+
+    }
+
+
+
+    @Test void registerUser_loginWithCorrectDetails_bookService_WithIncorrectReceiverDetails_Throws_An_Exception(){
+        RegisterRequest registerRequest = checkRequest("username","password","emailAddress","phoneNumber",checkAddress("123","magodo","Lagos","Nigeria","Benita street"));
+        logisticsService.register(registerRequest);
+
+        LoginRequest loginRequest = new LoginRequest();
+        loginRequest.setPassword("password");
+        loginRequest.setUsername("username");
+        logisticsService.login(loginRequest);
+
+        User user = new User();
+        user.setPhoneNumber("090");
+        user.setId(logisticsService.findAccountBelongingTo("username").getId());
+        user.setUsername("divine");
+        user.setAddress(checkAddress("123","magodo","Lagos","Nigeria","Benita street"));
+
+        SenderRequest senderRequest = new SenderRequest();
+        senderRequest.setEmailAddress("my@gmail.com");
+        senderRequest.setPhoneNumber("090");
+        senderRequest.setName("seer");
+        senderRequest.setAddress(checkAddress("67","ikeja","lagos","Nigeria","7 tunde"));
+
+        ReceiverRequest receiverRequest = new ReceiverRequest();
+        receiverRequest.setEmailAddress("my@gmail.com");
+        receiverRequest.setPhoneNumber("090");
+        receiverRequest.setName("seer");
+        receiverRequest.setAddress(checkAddress("67","ikeja","lagos","Nigeria","7 tunde"));
+
+        Sender sender =  logisticsService.addSenderInfo(senderRequest);
+
+
+
+        AddMoneyToWalletRequest addMoneyToWalletRequest = new AddMoneyToWalletRequest();
+        addMoneyToWalletRequest.setUserId(user.getId());
+        addMoneyToWalletRequest.setAmount(BigDecimal.valueOf(1000));
+
+        logisticsService.addMoneyToWallet(addMoneyToWalletRequest);
+        BookingRequest bookingRequest = new BookingRequest();
+        bookingRequest.setBookingCost(BigDecimal.valueOf(1000));
+        bookingRequest.setParcelName("dress");
+        bookingRequest.setSenderId(sender.getId());
+        bookingRequest.setReceiverId("RID 2");
+
+        assertThrows(ReceiverIdNotFoundError.class,()-> logisticsService.bookService(bookingRequest) );
+
+    }
 
 
 

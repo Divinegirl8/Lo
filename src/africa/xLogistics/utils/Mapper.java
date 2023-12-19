@@ -1,11 +1,10 @@
 package africa.xLogistics.utils;
 
-import africa.xLogistics.data.models.Address;
-import africa.xLogistics.data.models.Booking;
-import africa.xLogistics.data.models.Customer;
-import africa.xLogistics.data.models.User;
+import africa.xLogistics.data.models.*;
 import africa.xLogistics.dtos.requests.BookingRequest;
+import africa.xLogistics.dtos.requests.ReceiverRequest;
 import africa.xLogistics.dtos.requests.RegisterRequest;
+import africa.xLogistics.dtos.requests.SenderRequest;
 
 import java.time.LocalDateTime;
 
@@ -29,24 +28,50 @@ public class Mapper {
         Booking booking = new Booking();
         booking.setBookingId(bookingId);
 
-        User user = new User();
-        user.setUsername(bookingRequest.getSenderInfo().getUsername());
-        user.setAddress(bookingRequest.getSenderInfo().getAddress());
-        user.setId(bookingRequest.getSenderInfo().getId());
-        user.setPhoneNumber(bookingRequest.getSenderInfo().getPhoneNumber());
-        booking.setSenderInfo(user);
-
+        Sender sender = new Sender();
+        sender.setId(bookingRequest.getSenderId());
         booking.setParcelName(bookingRequest.getParcelName());
         booking.setDateTime(dateTime);
 
-        Customer customer = new Customer();
-        customer.setName(bookingRequest.getReceiverInfo().getName());
-        customer.setEmail(bookingRequest.getReceiverInfo().getEmail());
-        customer.setHomeAddress(bookingRequest.getReceiverInfo().getHomeAddress());
-        customer.setPhoneNumber(bookingRequest.getReceiverInfo().getPhoneNumber());
-        booking.setReceiverInfo(customer);
+        Receiver receiver = new Receiver();
+        receiver.setId(bookingRequest.getReceiverId());
+
+        User user = new User();
+        user.setId(bookingRequest.getUserId());
 
         return booking;
 
+    }
+    public static Receiver mapReceiver(String receiverId, ReceiverRequest receiverRequest){
+        Receiver receiver = new Receiver();
+
+        receiver.setName(receiverRequest.getName());
+        receiver.setEmail(receiverRequest.getEmailAddress());
+        receiver.setId(receiverId);
+        receiver.setPhoneNumber(receiverRequest.getPhoneNumber());
+
+        Address address = receiverRequest.getAddress();
+
+        if (address != null){
+            receiver.setHomeAddress(address);
+        }
+      return receiver;
+
+    }
+
+    public static Sender mapSender(String senderId, SenderRequest senderRequest){
+        Sender sender = new Sender();
+
+        sender.setName(senderRequest.getName());
+        sender.setId(senderId);
+        sender.setEmailAddress(senderRequest.getEmailAddress());
+        sender.setPhoneNumber(senderRequest.getPhoneNumber());
+
+        Address address = senderRequest.getAddress();
+
+        if (address != null){
+            sender.setAddress(address);
+        }
+return sender;
     }
 }

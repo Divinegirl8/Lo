@@ -7,11 +7,12 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
-        <module name="gossipVille" />
+        <module name="xLogistics" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
       <module name="diary_repository" target="1.5" />
+      <module name="Logistics" target="21" />
       <module name="newKata" target="21" />
     </bytecodeTargetLevel>
   </component>

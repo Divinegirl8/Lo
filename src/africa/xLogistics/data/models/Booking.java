@@ -10,7 +10,7 @@ public class Booking {
     @Id
     private String bookingId;
     private User senderInfo;
-    private Customer receiverInfo;
+    private Receiver receiverInfo;
     private boolean isBooked;
     private String parcelName;
     private LocalDateTime dateTime;

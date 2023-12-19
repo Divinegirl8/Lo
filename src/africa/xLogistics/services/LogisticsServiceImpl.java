@@ -1,14 +1,11 @@
 package africa.xLogistics.services;
 
-import africa.xLogistics.data.models.Booking;
-import africa.xLogistics.data.models.User;
-import africa.xLogistics.data.models.Wallet;
+import africa.xLogistics.data.models.*;
 import africa.xLogistics.data.repositories.BookingRepository;
+import africa.xLogistics.data.repositories.ReceiverRepository;
+import africa.xLogistics.data.repositories.SenderRepository;
 import africa.xLogistics.data.repositories.UserRepository;
-import africa.xLogistics.dtos.requests.AddMoneyToWalletRequest;
-import africa.xLogistics.dtos.requests.BookingRequest;
-import africa.xLogistics.dtos.requests.LoginRequest;
-import africa.xLogistics.dtos.requests.RegisterRequest;
+import africa.xLogistics.dtos.requests.*;
 import africa.xLogistics.exceptions.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -24,12 +21,16 @@ public class LogisticsServiceImpl implements LogisticsService {
     private UserRepository repository ;
     @Autowired
     private BookingRepository bookingRepository;
+    @Autowired
+    private ReceiverRepository receiverRepository;
+    @Autowired
+    private SenderRepository senderRepository;
 
 
     @Override
     public User register(RegisterRequest registerRequest) {
         if(userExist(registerRequest.getUsername())) throw new UserExistException(registerRequest.getUsername()+ " already exist");
-       User user = registerMap("UID" + repository.count() + 1,registerRequest);
+       User user = registerMap("UID" + (repository.count() + 1),registerRequest);
 
         Wallet wallet = new Wallet();
         user.setWallet(wallet);
@@ -96,12 +97,46 @@ public class LogisticsServiceImpl implements LogisticsService {
 
     @Override
     public Booking bookService(BookingRequest bookingRequest) {
+        if (!findReceiverId(bookingRequest.getReceiverId())) {
+            throw new ReceiverIdNotFoundError(bookingRequest.getReceiverId() + " not found");
+        }
+
+        if (!findSenderId(bookingRequest.getSenderId())) {
+            throw new SenderIdNotFoundError(bookingRequest.getSenderId() + " not found");
+        }
+
         BigDecimal bookingCost = bookingRequest.getBookingCost();
-        deductMoneyFromWallet(bookingRequest.getSenderInfo().getId(),bookingCost);
-        Booking booking = bookMap("BID" + bookingRepository.count() + 1, LocalDateTime.now(),bookingRequest);
+        deductMoneyFromWallet(bookingRequest.getUserId(), bookingCost);
+        Booking booking = bookMap("BID" + (bookingRepository.count() + 1), LocalDateTime.now(),bookingRequest);
         booking.setBooked(true);
+
         bookingRepository.save(booking);
         return booking;
+    }
+
+    private boolean findReceiverId(String receiverId){
+        Receiver receiver = receiverRepository.findReceiverById(receiverId);
+        return receiver != null;
+    }
+
+    private boolean findSenderId(String senderId){
+        Sender sender = senderRepository.findSenderById(senderId);
+
+        return sender != null;
+    }
+
+    @Override
+    public Receiver addReceiverInfo(ReceiverRequest receiverRequest) {
+        Receiver receiver = mapReceiver("RID" + (receiverRepository.count() + 1), receiverRequest);
+        receiverRepository.save(receiver);
+        return receiver;
+    }
+
+    @Override
+    public Sender addSenderInfo(SenderRequest senderRequest) {
+        Sender sender = mapSender("SID" + (senderRepository.count() + 1),senderRequest);
+        senderRepository.save(sender);
+        return sender;
     }
 
     private void validateDepositAmount(BigDecimal amount){
@@ -109,11 +144,11 @@ public class LogisticsServiceImpl implements LogisticsService {
     }
 
     private void validateSufficientFund(BigDecimal balance,BigDecimal amount){
-        if (balance.compareTo(amount)  < 0) throw new InsufficientFundsError("Error!!! your account balance is lower than the money you are trying to withdraw\nTry Again");
+        if (balance.compareTo(amount)  < 0) throw new InsufficientFundsError("Error!!! your wallet balance is lower than the money you are trying to withdraw");
     }
 
     private void validateLowBalance(BigDecimal amount){
-        if (amount.compareTo(BigDecimal.ZERO) <= 0)  throw new LowAmountError("Error!!! The amount you are trying to withdraw must be greater than 0\nTry again");
+        if (amount.compareTo(BigDecimal.ZERO) <= 0)  throw new LowAmountError("Error!!! The amount you are trying to withdraw must be greater than 0");
     }
 
 
