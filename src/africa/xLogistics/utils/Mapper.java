@@ -1,10 +1,7 @@
 package africa.xLogistics.utils;
 
 import africa.xLogistics.data.models.*;
-import africa.xLogistics.dtos.requests.BookingRequest;
-import africa.xLogistics.dtos.requests.ReceiverRequest;
-import africa.xLogistics.dtos.requests.RegisterRequest;
-import africa.xLogistics.dtos.requests.SenderRequest;
+import africa.xLogistics.dtos.requests.*;
 
 import java.time.LocalDateTime;
 
@@ -73,5 +70,16 @@ public class Mapper {
             sender.setAddress(address);
         }
 return sender;
+    }
+
+    public static Review mapReview(String reviewId, ReviewRequest reviewRequest){
+        Review review = new Review();
+
+        review.setReviewId(reviewId);
+        review.setUserId(reviewRequest.getUserId());
+        review.setBookingId(reviewRequest.getBookingId());
+        review.setComment(reviewRequest.getComment());
+
+        return review;
     }
 }

@@ -1,9 +1,6 @@
 package africa.xLogistics.controllers;
 
-import africa.xLogistics.data.models.Booking;
-import africa.xLogistics.data.models.Receiver;
-import africa.xLogistics.data.models.Sender;
-import africa.xLogistics.data.models.User;
+import africa.xLogistics.data.models.*;
 import africa.xLogistics.dtos.requests.*;
 import africa.xLogistics.dtos.responses.*;
 
@@ -12,6 +9,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.math.BigDecimal;
 
 @RestController
 public class LogisticController {
@@ -104,7 +103,33 @@ public class LogisticController {
     }
 }
 
+@PostMapping("/review")
+    public ResponseEntity<?> addReview(@RequestBody ReviewRequest reviewRequest){
+        ReviewResponse reviewResponse = new ReviewResponse();
 
+        try {
+           Review review = logisticsService.addReview(reviewRequest);
+            reviewResponse.setMessage("successful, review id is "+ review.getReviewId());
+            return  new ResponseEntity<>(new ApiResponse(true,reviewResponse),HttpStatus.CREATED);
+        } catch (Exception e){
+            reviewResponse.setMessage(e.getMessage());
+            return new ResponseEntity<>(new ApiResponse(false,reviewResponse),HttpStatus.BAD_REQUEST);
+        }
+}
+
+@GetMapping("/balance/{userId}")
+    public ResponseEntity<?> checkBalance(@PathVariable("userId") String userId){
+        CheckBalanceResponse checkBalanceResponse = new CheckBalanceResponse();
+
+        try {
+           BigDecimal balance = logisticsService.checkWalletBalance(userId);
+            checkBalanceResponse.setMessage("Balance is " + balance);
+            return new ResponseEntity<>(new ApiResponse(true,checkBalanceResponse),HttpStatus.ACCEPTED);
+        }catch (Exception e){
+            checkBalanceResponse.setMessage(e.getMessage());
+            return new ResponseEntity<>(new ApiResponse(false,checkBalanceResponse), HttpStatus.BAD_REQUEST);
+        }
+}
 
 
 

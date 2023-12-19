@@ -25,6 +25,8 @@ class LogisticsServiceImplTest {
     ReceiverRepository receiverRepository;
     @Autowired
     SenderRepository senderRepository;
+    @Autowired
+    ReviewRepository reviewRepository;
 
 
 
@@ -34,6 +36,7 @@ class LogisticsServiceImplTest {
         bookingRepository.deleteAll();
         receiverRepository.deleteAll();
         senderRepository.deleteAll();
+        reviewRepository.deleteAll();
 
     }
 
@@ -130,6 +133,23 @@ class LogisticsServiceImplTest {
     }
 
     @Test
+    void registerUser_Add_Money_To_Wallet_Without_Login_Throws_An_Exception() {
+        RegisterRequest registerRequest = checkRequest("username", "password", "emailAddress", "phoneNumber", checkAddress("123", "magodo", "Lagos", "Nigeria", "Benita street"));
+        logisticsService.register(registerRequest);
+
+
+        User user = logisticsService.findAccountBelongingTo("username");
+
+        AddMoneyToWalletRequest addMoneyToWalletRequest = new AddMoneyToWalletRequest();
+        addMoneyToWalletRequest.setUserId(user.getId());
+        addMoneyToWalletRequest.setAmount(BigDecimal.valueOf(1000));
+
+        assertThrows(NotLoginError.class,() -> logisticsService.addMoneyToWallet(addMoneyToWalletRequest));
+
+
+    }
+
+    @Test
     void registerUser_loginWithCorrectDetails_Add_Money_That_Is_Less_Than_One_To_Wallet_Throws_An_Exception() {
         RegisterRequest registerRequest = checkRequest("username", "password", "emailAddress", "phoneNumber", checkAddress("123", "magodo", "Lagos", "Nigeria", "Benita street"));
         logisticsService.register(registerRequest);
@@ -175,6 +195,11 @@ class LogisticsServiceImplTest {
 
         assertEquals(BigDecimal.valueOf(100),userRepository.findUserById(user.getId()).getWallet().getBalance());
     }
+
+
+
+
+
 
     @Test
     void registerUser_loginWithCorrectDetails_Add_Money_To_Wallet_Deduct_Money_From_Wallet_And_Again_Deduct_Money_More_Than_Balance_Throws_Error() {
@@ -340,6 +365,47 @@ class LogisticsServiceImplTest {
     }
 
 
+    @Test void registerUser_bookService_Without_Login_Throws_Error(){
+        RegisterRequest registerRequest = checkRequest("username","password","emailAddress","phoneNumber",checkAddress("123","magodo","Lagos","Nigeria","Benita street"));
+        logisticsService.register(registerRequest);
+
+
+        User user = new User();
+        user.setPhoneNumber("090");
+        user.setId(logisticsService.findAccountBelongingTo("username").getId());
+        user.setUsername("divine");
+        user.setAddress(checkAddress("123","magodo","Lagos","Nigeria","Benita street"));
+
+        SenderRequest senderRequest = new SenderRequest();
+        senderRequest.setEmailAddress("my@gmail.com");
+        senderRequest.setPhoneNumber("090");
+        senderRequest.setName("seer");
+        senderRequest.setAddress(checkAddress("67","ikeja","lagos","Nigeria","7 tunde"));
+
+        ReceiverRequest receiverRequest = new ReceiverRequest();
+        receiverRequest.setEmailAddress("my@gmail.com");
+        receiverRequest.setPhoneNumber("090");
+        receiverRequest.setName("seer");
+        receiverRequest.setAddress(checkAddress("67","ikeja","lagos","Nigeria","7 tunde"));
+
+        Sender sender =  logisticsService.addSenderInfo(senderRequest);
+        Receiver receiver = logisticsService.addReceiverInfo(receiverRequest);
+
+
+        BookingRequest bookingRequest = new BookingRequest();
+        bookingRequest.setBookingCost(BigDecimal.valueOf(1000));
+        bookingRequest.setParcelName("dress");
+        bookingRequest.setSenderId(sender.getId());
+        bookingRequest.setReceiverId(receiver.getId());
+        bookingRequest.setUserId(user.getId());
+
+       assertThrows(NotLoginError.class,()-> logisticsService.bookService(bookingRequest));
+
+
+    }
+
+
+
     @Test void registerUser_loginWithCorrectDetails_bookService_Twice(){
         RegisterRequest registerRequest = checkRequest("username","password","emailAddress","phoneNumber",checkAddress("123","magodo","Lagos","Nigeria","Benita street"));
         logisticsService.register(registerRequest);
@@ -486,6 +552,284 @@ class LogisticsServiceImplTest {
         bookingRequest.setReceiverId("RID 2");
 
         assertThrows(ReceiverIdNotFoundError.class,()-> logisticsService.bookService(bookingRequest) );
+
+    }
+
+
+    @Test void registerUser_loginWithCorrectDetails_bookService_Add_Review_After_Delivery(){
+        RegisterRequest registerRequest = checkRequest("username","password","emailAddress","phoneNumber",checkAddress("123","magodo","Lagos","Nigeria","Benita street"));
+        logisticsService.register(registerRequest);
+
+        LoginRequest loginRequest = new LoginRequest();
+        loginRequest.setPassword("password");
+        loginRequest.setUsername("username");
+        logisticsService.login(loginRequest);
+
+        User user = new User();
+        user.setPhoneNumber("090");
+        user.setId(logisticsService.findAccountBelongingTo("username").getId());
+        user.setUsername("divine");
+        user.setAddress(checkAddress("123","magodo","Lagos","Nigeria","Benita street"));
+
+        SenderRequest senderRequest = new SenderRequest();
+        senderRequest.setEmailAddress("my@gmail.com");
+        senderRequest.setPhoneNumber("090");
+        senderRequest.setName("seer");
+        senderRequest.setAddress(checkAddress("67","ikeja","lagos","Nigeria","7 tunde"));
+
+        ReceiverRequest receiverRequest = new ReceiverRequest();
+        receiverRequest.setEmailAddress("my@gmail.com");
+        receiverRequest.setPhoneNumber("090");
+        receiverRequest.setName("seer");
+        receiverRequest.setAddress(checkAddress("67","ikeja","lagos","Nigeria","7 tunde"));
+
+        Sender sender =  logisticsService.addSenderInfo(senderRequest);
+        Receiver receiver = logisticsService.addReceiverInfo(receiverRequest);
+
+
+        AddMoneyToWalletRequest addMoneyToWalletRequest = new AddMoneyToWalletRequest();
+        addMoneyToWalletRequest.setUserId(user.getId());
+        addMoneyToWalletRequest.setAmount(BigDecimal.valueOf(1000));
+
+        logisticsService.addMoneyToWallet(addMoneyToWalletRequest);
+        BookingRequest bookingRequest = new BookingRequest();
+        bookingRequest.setBookingCost(BigDecimal.valueOf(1000));
+        bookingRequest.setParcelName("dress");
+        bookingRequest.setSenderId(sender.getId());
+        bookingRequest.setReceiverId(receiver.getId());
+        bookingRequest.setUserId(user.getId());
+
+       logisticsService.bookService(bookingRequest);
+
+        assertEquals(1,bookingRepository.count());
+
+        ReviewRequest reviewRequest = new ReviewRequest();
+        reviewRequest.setUserId("UID1");
+        reviewRequest.setBookingId("BID1");
+        reviewRequest.setComment("Thanks, order received");
+
+        logisticsService.addReview(reviewRequest);
+        assertEquals(1,reviewRepository.count());
+
+    }
+
+
+
+    @Test void registerUser_loginWithCorrectDetails_bookService_Add_Review_With_Wrong_Userid_Throws_An_Exception(){
+        RegisterRequest registerRequest = checkRequest("username","password","emailAddress","phoneNumber",checkAddress("123","magodo","Lagos","Nigeria","Benita street"));
+        logisticsService.register(registerRequest);
+
+        LoginRequest loginRequest = new LoginRequest();
+        loginRequest.setPassword("password");
+        loginRequest.setUsername("username");
+        logisticsService.login(loginRequest);
+
+        User user = new User();
+        user.setPhoneNumber("090");
+        user.setId(logisticsService.findAccountBelongingTo("username").getId());
+        user.setUsername("divine");
+        user.setAddress(checkAddress("123","magodo","Lagos","Nigeria","Benita street"));
+
+        SenderRequest senderRequest = new SenderRequest();
+        senderRequest.setEmailAddress("my@gmail.com");
+        senderRequest.setPhoneNumber("090");
+        senderRequest.setName("seer");
+        senderRequest.setAddress(checkAddress("67","ikeja","lagos","Nigeria","7 tunde"));
+
+        ReceiverRequest receiverRequest = new ReceiverRequest();
+        receiverRequest.setEmailAddress("my@gmail.com");
+        receiverRequest.setPhoneNumber("090");
+        receiverRequest.setName("seer");
+        receiverRequest.setAddress(checkAddress("67","ikeja","lagos","Nigeria","7 tunde"));
+
+        Sender sender =  logisticsService.addSenderInfo(senderRequest);
+        Receiver receiver = logisticsService.addReceiverInfo(receiverRequest);
+
+
+        AddMoneyToWalletRequest addMoneyToWalletRequest = new AddMoneyToWalletRequest();
+        addMoneyToWalletRequest.setUserId(user.getId());
+        addMoneyToWalletRequest.setAmount(BigDecimal.valueOf(1000));
+
+        logisticsService.addMoneyToWallet(addMoneyToWalletRequest);
+        BookingRequest bookingRequest = new BookingRequest();
+        bookingRequest.setBookingCost(BigDecimal.valueOf(1000));
+        bookingRequest.setParcelName("dress");
+        bookingRequest.setSenderId(sender.getId());
+        bookingRequest.setReceiverId(receiver.getId());
+        bookingRequest.setUserId(user.getId());
+
+        Booking booking =  logisticsService.bookService(bookingRequest);
+
+        assertEquals(1,bookingRepository.count());
+
+        ReviewRequest reviewRequest = new ReviewRequest();
+        reviewRequest.setUserId("UID9");
+        reviewRequest.setBookingId(booking.getBookingId());
+        reviewRequest.setComment("Thanks, order received");
+
+      assertThrows(UserNotFoundException.class,()->logisticsService.addReview(reviewRequest));
+
+
+    }
+
+
+    @Test void registerUser_loginWithCorrectDetails_bookService_Add_Review_With_Wrong_Bookingid_Throws_An_Exception(){
+        RegisterRequest registerRequest = checkRequest("username","password","emailAddress","phoneNumber",checkAddress("123","magodo","Lagos","Nigeria","Benita street"));
+        logisticsService.register(registerRequest);
+
+        LoginRequest loginRequest = new LoginRequest();
+        loginRequest.setPassword("password");
+        loginRequest.setUsername("username");
+        logisticsService.login(loginRequest);
+
+        User user = new User();
+        user.setPhoneNumber("090");
+        user.setId(logisticsService.findAccountBelongingTo("username").getId());
+        user.setUsername("divine");
+        user.setAddress(checkAddress("123","magodo","Lagos","Nigeria","Benita street"));
+
+        SenderRequest senderRequest = new SenderRequest();
+        senderRequest.setEmailAddress("my@gmail.com");
+        senderRequest.setPhoneNumber("090");
+        senderRequest.setName("seer");
+        senderRequest.setAddress(checkAddress("67","ikeja","lagos","Nigeria","7 tunde"));
+
+        ReceiverRequest receiverRequest = new ReceiverRequest();
+        receiverRequest.setEmailAddress("my@gmail.com");
+        receiverRequest.setPhoneNumber("090");
+        receiverRequest.setName("seer");
+        receiverRequest.setAddress(checkAddress("67","ikeja","lagos","Nigeria","7 tunde"));
+
+        Sender sender =  logisticsService.addSenderInfo(senderRequest);
+        Receiver receiver = logisticsService.addReceiverInfo(receiverRequest);
+
+
+        AddMoneyToWalletRequest addMoneyToWalletRequest = new AddMoneyToWalletRequest();
+        addMoneyToWalletRequest.setUserId(user.getId());
+        addMoneyToWalletRequest.setAmount(BigDecimal.valueOf(1000));
+
+        logisticsService.addMoneyToWallet(addMoneyToWalletRequest);
+        BookingRequest bookingRequest = new BookingRequest();
+        bookingRequest.setBookingCost(BigDecimal.valueOf(1000));
+        bookingRequest.setParcelName("dress");
+        bookingRequest.setSenderId(sender.getId());
+        bookingRequest.setReceiverId(receiver.getId());
+        bookingRequest.setUserId(user.getId());
+
+        logisticsService.bookService(bookingRequest);
+
+        assertEquals(1,bookingRepository.count());
+
+        ReviewRequest reviewRequest = new ReviewRequest();
+        reviewRequest.setUserId("UID1");
+        reviewRequest.setBookingId("BID09");
+        reviewRequest.setComment("Thanks, order received");
+
+        assertThrows(BookingIdNotFound.class,()->logisticsService.addReview(reviewRequest));
+
+    }
+
+
+    @Test void registerUser_loginWithCorrectDetails_bookService_CheckWalletBalance(){
+        RegisterRequest registerRequest = checkRequest("username","password","emailAddress","phoneNumber",checkAddress("123","magodo","Lagos","Nigeria","Benita street"));
+        logisticsService.register(registerRequest);
+
+        LoginRequest loginRequest = new LoginRequest();
+        loginRequest.setPassword("password");
+        loginRequest.setUsername("username");
+        logisticsService.login(loginRequest);
+
+        User user = new User();
+        user.setPhoneNumber("090");
+        user.setId(logisticsService.findAccountBelongingTo("username").getId());
+        user.setUsername("divine");
+        user.setAddress(checkAddress("123","magodo","Lagos","Nigeria","Benita street"));
+
+        SenderRequest senderRequest = new SenderRequest();
+        senderRequest.setEmailAddress("my@gmail.com");
+        senderRequest.setPhoneNumber("090");
+        senderRequest.setName("seer");
+        senderRequest.setAddress(checkAddress("67","ikeja","lagos","Nigeria","7 tunde"));
+
+        ReceiverRequest receiverRequest = new ReceiverRequest();
+        receiverRequest.setEmailAddress("my@gmail.com");
+        receiverRequest.setPhoneNumber("090");
+        receiverRequest.setName("seer");
+        receiverRequest.setAddress(checkAddress("67","ikeja","lagos","Nigeria","7 tunde"));
+
+        Sender sender =  logisticsService.addSenderInfo(senderRequest);
+        Receiver receiver = logisticsService.addReceiverInfo(receiverRequest);
+
+
+        AddMoneyToWalletRequest addMoneyToWalletRequest = new AddMoneyToWalletRequest();
+        addMoneyToWalletRequest.setUserId(user.getId());
+        addMoneyToWalletRequest.setAmount(BigDecimal.valueOf(1000));
+
+        logisticsService.addMoneyToWallet(addMoneyToWalletRequest);
+        BookingRequest bookingRequest = new BookingRequest();
+        bookingRequest.setBookingCost(BigDecimal.valueOf(1000));
+        bookingRequest.setParcelName("dress");
+        bookingRequest.setSenderId(sender.getId());
+        bookingRequest.setReceiverId(receiver.getId());
+        bookingRequest.setUserId(user.getId());
+
+        logisticsService.bookService(bookingRequest);
+
+        assertEquals(1,bookingRepository.count());
+
+        assertEquals(BigDecimal.valueOf(0),logisticsService.checkWalletBalance("UID1"));
+
+    }
+
+
+    @Test void registerUser_loginWithCorrectDetails_bookService_CheckWalletBalance_With_Wrong_UserID_Throws_Exception(){
+        RegisterRequest registerRequest = checkRequest("username","password","emailAddress","phoneNumber",checkAddress("123","magodo","Lagos","Nigeria","Benita street"));
+        logisticsService.register(registerRequest);
+
+        LoginRequest loginRequest = new LoginRequest();
+        loginRequest.setPassword("password");
+        loginRequest.setUsername("username");
+        logisticsService.login(loginRequest);
+
+        User user = new User();
+        user.setPhoneNumber("090");
+        user.setId(logisticsService.findAccountBelongingTo("username").getId());
+        user.setUsername("divine");
+        user.setAddress(checkAddress("123","magodo","Lagos","Nigeria","Benita street"));
+
+        SenderRequest senderRequest = new SenderRequest();
+        senderRequest.setEmailAddress("my@gmail.com");
+        senderRequest.setPhoneNumber("090");
+        senderRequest.setName("seer");
+        senderRequest.setAddress(checkAddress("67","ikeja","lagos","Nigeria","7 tunde"));
+
+        ReceiverRequest receiverRequest = new ReceiverRequest();
+        receiverRequest.setEmailAddress("my@gmail.com");
+        receiverRequest.setPhoneNumber("090");
+        receiverRequest.setName("seer");
+        receiverRequest.setAddress(checkAddress("67","ikeja","lagos","Nigeria","7 tunde"));
+
+        Sender sender =  logisticsService.addSenderInfo(senderRequest);
+        Receiver receiver = logisticsService.addReceiverInfo(receiverRequest);
+
+
+        AddMoneyToWalletRequest addMoneyToWalletRequest = new AddMoneyToWalletRequest();
+        addMoneyToWalletRequest.setUserId(user.getId());
+        addMoneyToWalletRequest.setAmount(BigDecimal.valueOf(1000));
+
+        logisticsService.addMoneyToWallet(addMoneyToWalletRequest);
+        BookingRequest bookingRequest = new BookingRequest();
+        bookingRequest.setBookingCost(BigDecimal.valueOf(1000));
+        bookingRequest.setParcelName("dress");
+        bookingRequest.setSenderId(sender.getId());
+        bookingRequest.setReceiverId(receiver.getId());
+        bookingRequest.setUserId(user.getId());
+
+        logisticsService.bookService(bookingRequest);
+
+        assertEquals(1,bookingRepository.count());
+
+        assertThrows(UserNotFoundException.class,() -> logisticsService.checkWalletBalance("UID10"));
 
     }
 

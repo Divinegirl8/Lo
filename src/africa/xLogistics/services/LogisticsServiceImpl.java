@@ -1,10 +1,7 @@
 package africa.xLogistics.services;
 
 import africa.xLogistics.data.models.*;
-import africa.xLogistics.data.repositories.BookingRepository;
-import africa.xLogistics.data.repositories.ReceiverRepository;
-import africa.xLogistics.data.repositories.SenderRepository;
-import africa.xLogistics.data.repositories.UserRepository;
+import africa.xLogistics.data.repositories.*;
 import africa.xLogistics.dtos.requests.*;
 import africa.xLogistics.exceptions.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +22,8 @@ public class LogisticsServiceImpl implements LogisticsService {
     private ReceiverRepository receiverRepository;
     @Autowired
     private SenderRepository senderRepository;
+    @Autowired
+    private ReviewRepository reviewRepository;
 
 
     @Override
@@ -62,11 +61,11 @@ public class LogisticsServiceImpl implements LogisticsService {
     @Override
     public void addMoneyToWallet(AddMoneyToWalletRequest addMoneyToWalletRequest) {
      User user = repository.findUserById(addMoneyToWalletRequest.getUserId());
-
-
         if (user == null) {
             throw new UserNotFoundException(addMoneyToWalletRequest.getUserId() + " not found");
         }
+
+     if (!user.isLoggedIn()) {throw new NotLoginError("you must login to perform this action");}
 
         Wallet wallet = user.getWallet();
         BigDecimal balance = wallet.getBalance();
@@ -97,6 +96,7 @@ public class LogisticsServiceImpl implements LogisticsService {
 
     @Override
     public Booking bookService(BookingRequest bookingRequest) {
+        User user = repository.findUserById(bookingRequest.getUserId());
         if (!findReceiverId(bookingRequest.getReceiverId())) {
             throw new ReceiverIdNotFoundError(bookingRequest.getReceiverId() + " not found");
         }
@@ -104,6 +104,7 @@ public class LogisticsServiceImpl implements LogisticsService {
         if (!findSenderId(bookingRequest.getSenderId())) {
             throw new SenderIdNotFoundError(bookingRequest.getSenderId() + " not found");
         }
+        if (!user.isLoggedIn()) {throw new NotLoginError("you must login to perform this action");}
 
         BigDecimal bookingCost = bookingRequest.getBookingCost();
         deductMoneyFromWallet(bookingRequest.getUserId(), bookingCost);
@@ -127,6 +128,7 @@ public class LogisticsServiceImpl implements LogisticsService {
 
     @Override
     public Receiver addReceiverInfo(ReceiverRequest receiverRequest) {
+
         Receiver receiver = mapReceiver("RID" + (receiverRepository.count() + 1), receiverRequest);
         receiverRepository.save(receiver);
         return receiver;
@@ -137,6 +139,33 @@ public class LogisticsServiceImpl implements LogisticsService {
         Sender sender = mapSender("SID" + (senderRepository.count() + 1),senderRequest);
         senderRepository.save(sender);
         return sender;
+    }
+
+    @Override
+    public Review addReview(ReviewRequest reviewRequest) {
+        User user = repository.findUserById(reviewRequest.getUserId());
+
+        if (user == null) throw new UserNotFoundException( reviewRequest.getUserId() + " not found");
+
+        if (!user.isLoggedIn()) {throw new NotLoginError("you must login to perform this action");}
+
+        Booking booking = bookingRepository.findBookingByBookingId(reviewRequest.getBookingId());
+        if (booking == null) throw new BookingIdNotFound(reviewRequest.getBookingId() + " not found");
+
+        Review review = mapReview("RID" + (reviewRepository.count() + 1),reviewRequest);
+        reviewRepository.save(review);
+        return review;
+    }
+
+    @Override
+    public BigDecimal checkWalletBalance(String userId) {
+        User user = repository.findUserById(userId);
+        if (user == null) throw new UserNotFoundException( userId + " not found");
+
+        if (!user.isLoggedIn()) {throw new NotLoginError("you must login to perform this action");}
+
+        return user.getWallet().getBalance();
+
     }
 
     private void validateDepositAmount(BigDecimal amount){

@@ -1,9 +1,6 @@
 package africa.xLogistics.services;
 
-import africa.xLogistics.data.models.Booking;
-import africa.xLogistics.data.models.Receiver;
-import africa.xLogistics.data.models.Sender;
-import africa.xLogistics.data.models.User;
+import africa.xLogistics.data.models.*;
 import africa.xLogistics.dtos.requests.*;
 
 import java.math.BigDecimal;
@@ -21,5 +18,8 @@ public interface LogisticsService {
 
   Receiver addReceiverInfo(ReceiverRequest receiverRequest);
   Sender addSenderInfo(SenderRequest senderRequest);
+
+  Review addReview(ReviewRequest reviewRequest);
+  BigDecimal checkWalletBalance(String userId);
 
 }
