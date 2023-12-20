@@ -324,11 +324,7 @@ class LogisticsServiceImplTest {
         loginRequest.setUsername("username");
         logisticsService.login(loginRequest);
 
-        User user = new User();
-        user.setPhoneNumber("090");
-        user.setId(logisticsService.findAccountBelongingTo("username").getId());
-        user.setUsername("divine");
-        user.setAddress(checkAddress("123","magodo","Lagos","Nigeria","Benita street"));
+
 
         SenderRequest senderRequest = new SenderRequest();
         senderRequest.setEmailAddress("my@gmail.com");
@@ -342,21 +338,21 @@ class LogisticsServiceImplTest {
         receiverRequest.setName("seer");
         receiverRequest.setAddress(checkAddress("67","ikeja","lagos","Nigeria","7 tunde"));
 
-       Sender sender =  logisticsService.addSenderInfo(senderRequest);
-       Receiver receiver = logisticsService.addReceiverInfo(receiverRequest);
+       logisticsService.addSenderInfo(senderRequest);
+       logisticsService.addReceiverInfo(receiverRequest);
 
 
         AddMoneyToWalletRequest addMoneyToWalletRequest = new AddMoneyToWalletRequest();
-        addMoneyToWalletRequest.setUserId(user.getId());
+        addMoneyToWalletRequest.setUserId("UID1");
         addMoneyToWalletRequest.setAmount(BigDecimal.valueOf(1000));
 
         logisticsService.addMoneyToWallet(addMoneyToWalletRequest);
         BookingRequest bookingRequest = new BookingRequest();
         bookingRequest.setBookingCost(BigDecimal.valueOf(1000));
         bookingRequest.setParcelName("dress");
-        bookingRequest.setSenderId(sender.getId());
-        bookingRequest.setReceiverId(receiver.getId());
-        bookingRequest.setUserId(user.getId());
+        bookingRequest.setSenderId("SID1");
+        bookingRequest.setReceiverId("RID1");
+        bookingRequest.setUserId("UID1");
 
         logisticsService.bookService(bookingRequest);
 
@@ -448,7 +444,7 @@ class LogisticsServiceImplTest {
         bookingRequest.setParcelName("dress");
         bookingRequest.setSenderId(sender.getId());
         bookingRequest.setReceiverId(receiver.getId());
-        bookingRequest.setUserId(user.getId());
+        bookingRequest.setUserId("UID1");
 
         Booking booking  = logisticsService.bookService(bookingRequest);
         logisticsService.bookService(bookingRequest);
@@ -461,20 +457,22 @@ class LogisticsServiceImplTest {
 
 
 
-    @Test void registerUser_loginWithCorrectDetails_bookService_WithIncorrectSenderDetails_Throws_An_Exception(){
-        RegisterRequest registerRequest = checkRequest("username","password","emailAddress","phoneNumber",checkAddress("123","magodo","Lagos","Nigeria","Benita street"));
-        logisticsService.register(registerRequest);
+    @Test
+    void registerUser_loginWithCorrectDetails_bookService_WithIncorrectSenderDetails_Throws_An_Exception() {
+        RegisterRequest registerRequest = checkRequest("username", "password", "emailAddress", "phoneNumber", checkAddress("123", "magodo", "Lagos", "Nigeria", "Benita street"));
+        User user = logisticsService.register(registerRequest);
+
+
+        System.out.println("User registered: " + user);
 
         LoginRequest loginRequest = new LoginRequest();
         loginRequest.setPassword("password");
         loginRequest.setUsername("username");
-        logisticsService.login(loginRequest);
+       User user1 =  logisticsService.login(loginRequest);
 
-        User user = new User();
-        user.setPhoneNumber("090");
-        user.setId(logisticsService.findAccountBelongingTo("username").getId());
-        user.setUsername("divine");
-        user.setAddress(checkAddress("123","magodo","Lagos","Nigeria","Benita street"));
+
+        System.out.println("User logged in: " + user1);
+
 
         SenderRequest senderRequest = new SenderRequest();
         senderRequest.setEmailAddress("my@gmail.com");
@@ -489,7 +487,8 @@ class LogisticsServiceImplTest {
         receiverRequest.setAddress(checkAddress("67","ikeja","lagos","Nigeria","7 tunde"));
 
 
-        Receiver receiver = logisticsService.addReceiverInfo(receiverRequest);
+        System.out.println(logisticsService.addReceiverInfo(receiverRequest));
+        System.out.println(logisticsService.addSenderInfo(senderRequest));
 
 
         AddMoneyToWalletRequest addMoneyToWalletRequest = new AddMoneyToWalletRequest();
@@ -501,7 +500,8 @@ class LogisticsServiceImplTest {
         bookingRequest.setBookingCost(BigDecimal.valueOf(1000));
         bookingRequest.setParcelName("dress");
         bookingRequest.setSenderId("SID4");
-        bookingRequest.setReceiverId(receiver.getId());
+        bookingRequest.setReceiverId("RID1");
+        bookingRequest.setUserId("UID1");
 
         assertThrows(SenderIdNotFoundError.class,()-> logisticsService.bookService(bookingRequest) );
 
@@ -550,6 +550,7 @@ class LogisticsServiceImplTest {
         bookingRequest.setParcelName("dress");
         bookingRequest.setSenderId(sender.getId());
         bookingRequest.setReceiverId("RID 2");
+        bookingRequest.setUserId("UID1");
 
         assertThrows(ReceiverIdNotFoundError.class,()-> logisticsService.bookService(bookingRequest) );
 
@@ -673,7 +674,7 @@ class LogisticsServiceImplTest {
     }
 
 
-    @Test void registerUser_loginWithCorrectDetails_bookService_Add_Review_With_Wrong_Bookingid_Throws_An_Exception(){
+    @Test void registerUser_loginWithCorrectDetails_bookService_Add_Review_With_Wrong_BookingId_Throws_An_Exception(){
         RegisterRequest registerRequest = checkRequest("username","password","emailAddress","phoneNumber",checkAddress("123","magodo","Lagos","Nigeria","Benita street"));
         logisticsService.register(registerRequest);
 
@@ -700,8 +701,8 @@ class LogisticsServiceImplTest {
         receiverRequest.setName("seer");
         receiverRequest.setAddress(checkAddress("67","ikeja","lagos","Nigeria","7 tunde"));
 
-        Sender sender =  logisticsService.addSenderInfo(senderRequest);
-        Receiver receiver = logisticsService.addReceiverInfo(receiverRequest);
+        logisticsService.addSenderInfo(senderRequest);
+        logisticsService.addReceiverInfo(receiverRequest);
 
 
         AddMoneyToWalletRequest addMoneyToWalletRequest = new AddMoneyToWalletRequest();
@@ -712,9 +713,9 @@ class LogisticsServiceImplTest {
         BookingRequest bookingRequest = new BookingRequest();
         bookingRequest.setBookingCost(BigDecimal.valueOf(1000));
         bookingRequest.setParcelName("dress");
-        bookingRequest.setSenderId(sender.getId());
-        bookingRequest.setReceiverId(receiver.getId());
-        bookingRequest.setUserId(user.getId());
+        bookingRequest.setSenderId("SID1");
+        bookingRequest.setReceiverId("RID1");
+        bookingRequest.setUserId("UID1");
 
         logisticsService.bookService(bookingRequest);
 

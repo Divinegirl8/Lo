@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 public class Booking {
     @Id
     private String bookingId;
-    private User senderInfo;
+    private Sender senderInfo;
     private Receiver receiverInfo;
     private boolean isBooked;
     private String parcelName;

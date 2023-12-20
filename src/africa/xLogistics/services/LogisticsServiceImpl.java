@@ -24,6 +24,15 @@ public class LogisticsServiceImpl implements LogisticsService {
     private SenderRepository senderRepository;
     @Autowired
     private ReviewRepository reviewRepository;
+    @Autowired
+    private BookingServiceImpl bookingService;
+    @Autowired
+    private  ReceiverService receiverService;
+    @Autowired
+    private SenderService senderService;
+    @Autowired
+    private ReviewService reviewService;
+
 
 
     @Override
@@ -39,13 +48,14 @@ public class LogisticsServiceImpl implements LogisticsService {
     }
 
     @Override
-    public void login(LoginRequest loginRequest) {
+    public User login(LoginRequest loginRequest) {
         User user = repository.findUserByUsername(loginRequest.getUsername());
 
         if (!userExist(loginRequest.getUsername())) throw new InvalidDetailsException();
         if (!loginRequest.getPassword().equals(user.getPassword())) throw new InvalidDetailsException();
         user.setLoggedIn(true);
         repository.save(user);
+        return user;
     }
 
     @Override
@@ -75,6 +85,7 @@ public class LogisticsServiceImpl implements LogisticsService {
         wallet.setBalance(balance.add(addMoneyToWalletRequest.getAmount()));
         repository.save(user);
 
+
     }
 
     @Override
@@ -97,23 +108,53 @@ public class LogisticsServiceImpl implements LogisticsService {
     @Override
     public Booking bookService(BookingRequest bookingRequest) {
         User user = repository.findUserById(bookingRequest.getUserId());
-        if (!findReceiverId(bookingRequest.getReceiverId())) {
-            throw new ReceiverIdNotFoundError(bookingRequest.getReceiverId() + " not found");
-        }
 
-        if (!findSenderId(bookingRequest.getSenderId())) {
-            throw new SenderIdNotFoundError(bookingRequest.getSenderId() + " not found");
-        }
-        if (!user.isLoggedIn()) {throw new NotLoginError("you must login to perform this action");}
 
-        BigDecimal bookingCost = bookingRequest.getBookingCost();
-        deductMoneyFromWallet(bookingRequest.getUserId(), bookingCost);
-        Booking booking = bookMap("BID" + (bookingRepository.count() + 1), LocalDateTime.now(),bookingRequest);
-        booking.setBooked(true);
+        userNotFoundError(user, bookingRequest.getUserId());
+        validateLogin(user);
+        senderNotFoundError(bookingRequest.getSenderId());
+        receiverNotFoundError(bookingRequest.getReceiverId());
 
-        bookingRepository.save(booking);
-        return booking;
+        deductMoneyFromWallet(bookingRequest.getUserId(), bookingRequest.getBookingCost());
+
+
+
+            return bookingService.book(
+                    bookingRequest.getBookingCost(),
+                    bookingRequest.getReceiverId(),
+                    bookingRequest.getSenderId(),
+                    bookingRequest.getUserId(),
+                    bookingRequest.getParcelName(),
+                    "BID" + (bookingRepository.count() + 1),
+                    LocalDateTime.now()
+            );
+
     }
+
+    private void validateLogin(User user){
+        if (!user.isLoggedIn()) {
+            throw new NotLoginError("You must log in to perform this action");
+        }
+    }
+    private void  userNotFoundError(User user,String userId){
+        if (user == null) {
+            throw new UserNotFoundException(userId + " not found");
+        }
+    }
+
+    private void senderNotFoundError(String senderId){
+        if (!findSenderId(senderId)){
+            throw new SenderIdNotFoundError("Sender ID '" + senderId + "' not found");
+        }
+    }
+
+    private void receiverNotFoundError(String receiverId){
+        if (!findReceiverId(receiverId)){
+            throw new ReceiverIdNotFoundError("Receiver ID '" + receiverId + "' not found");
+        }
+    }
+
+
 
     private boolean findReceiverId(String receiverId){
         Receiver receiver = receiverRepository.findReceiverById(receiverId);
@@ -128,19 +169,13 @@ public class LogisticsServiceImpl implements LogisticsService {
 
     @Override
     public Receiver addReceiverInfo(ReceiverRequest receiverRequest) {
-
-        Receiver receiver = mapReceiver("RID" + (receiverRepository.count() + 1), receiverRequest);
-        receiverRepository.save(receiver);
-        return receiver;
+        return receiverService.receiverInfo("RID" + (receiverRepository.count()+1),receiverRequest.getName(),receiverRequest.getPhoneNumber(),receiverRequest.getAddress(),receiverRequest.getEmailAddress());
     }
 
     @Override
     public Sender addSenderInfo(SenderRequest senderRequest) {
-        Sender sender = mapSender("SID" + (senderRepository.count() + 1),senderRequest);
-        senderRepository.save(sender);
-        return sender;
+        return senderService.senderInfo("SID" + (senderRepository.count()+1),senderRequest.getName(),senderRequest.getPhoneNumber(),senderRequest.getAddress(),senderRequest.getEmailAddress());
     }
-
     @Override
     public Review addReview(ReviewRequest reviewRequest) {
         User user = repository.findUserById(reviewRequest.getUserId());
@@ -152,9 +187,8 @@ public class LogisticsServiceImpl implements LogisticsService {
         Booking booking = bookingRepository.findBookingByBookingId(reviewRequest.getBookingId());
         if (booking == null) throw new BookingIdNotFound(reviewRequest.getBookingId() + " not found");
 
-        Review review = mapReview("RID" + (reviewRepository.count() + 1),reviewRequest);
-        reviewRepository.save(review);
-        return review;
+        return reviewService.userReview("RID" + (reviewRepository.count()+1),reviewRequest.getUserId(),reviewRequest.getBookingId(),reviewRequest.getComment());
+
     }
 
     @Override

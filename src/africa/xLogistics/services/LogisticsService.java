@@ -7,7 +7,7 @@ import java.math.BigDecimal;
 
 public interface LogisticsService {
     User register(RegisterRequest registerRequest);
-    void login(LoginRequest loginRequest);
+    User login(LoginRequest loginRequest);
     User findAccountBelongingTo(String name);
 
   void addMoneyToWallet(AddMoneyToWalletRequest addMoneyToWalletRequest);
@@ -21,5 +21,7 @@ public interface LogisticsService {
 
   Review addReview(ReviewRequest reviewRequest);
   BigDecimal checkWalletBalance(String userId);
+
+
 
 }
