@@ -22,16 +22,4 @@ public class Mapper {
         return newUser;
     }
 
-
-
-    public static Review mapReview(String reviewId, ReviewRequest reviewRequest){
-        Review review = new Review();
-
-        review.setReviewId(reviewId);
-        review.setUserId(reviewRequest.getUserId());
-        review.setBookingId(reviewRequest.getBookingId());
-        review.setComment(reviewRequest.getComment());
-
-        return review;
-    }
 }
