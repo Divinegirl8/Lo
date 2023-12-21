@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 import static africa.xLogistics.utils.Mapper.*;
 
@@ -19,17 +21,9 @@ public class LogisticsServiceImpl implements LogisticsService {
     @Autowired
     private BookingRepository bookingRepository;
     @Autowired
-    private ReceiverRepository receiverRepository;
-    @Autowired
-    private SenderRepository senderRepository;
-    @Autowired
     private ReviewRepository reviewRepository;
     @Autowired
     private BookingServiceImpl bookingService;
-    @Autowired
-    private  ReceiverService receiverService;
-    @Autowired
-    private SenderService senderService;
     @Autowired
     private ReviewService reviewService;
 
@@ -112,17 +106,15 @@ public class LogisticsServiceImpl implements LogisticsService {
 
         userNotFoundError(user, bookingRequest.getUserId());
         validateLogin(user);
-        senderNotFoundError(bookingRequest.getSenderId());
-        receiverNotFoundError(bookingRequest.getReceiverId());
+
 
         deductMoneyFromWallet(bookingRequest.getUserId(), bookingRequest.getBookingCost());
 
 
 
             return bookingService.book(
-                    bookingRequest.getBookingCost(),
-                    bookingRequest.getReceiverId(),
-                    bookingRequest.getSenderId(),
+                    bookingRequest.getSenderInfo(),
+                    bookingRequest.getReceiverInfo(),
                     bookingRequest.getUserId(),
                     bookingRequest.getParcelName(),
                     "BID" + (bookingRepository.count() + 1),
@@ -142,40 +134,10 @@ public class LogisticsServiceImpl implements LogisticsService {
         }
     }
 
-    private void senderNotFoundError(String senderId){
-        if (!findSenderId(senderId)){
-            throw new SenderIdNotFoundError("Sender ID '" + senderId + "' not found");
-        }
-    }
-
-    private void receiverNotFoundError(String receiverId){
-        if (!findReceiverId(receiverId)){
-            throw new ReceiverIdNotFoundError("Receiver ID '" + receiverId + "' not found");
-        }
-    }
 
 
 
-    private boolean findReceiverId(String receiverId){
-        Receiver receiver = receiverRepository.findReceiverById(receiverId);
-        return receiver != null;
-    }
 
-    private boolean findSenderId(String senderId){
-        Sender sender = senderRepository.findSenderById(senderId);
-
-        return sender != null;
-    }
-
-    @Override
-    public Receiver addReceiverInfo(ReceiverRequest receiverRequest) {
-        return receiverService.receiverInfo("RID" + (receiverRepository.count()+1),receiverRequest.getName(),receiverRequest.getPhoneNumber(),receiverRequest.getAddress(),receiverRequest.getEmailAddress());
-    }
-
-    @Override
-    public Sender addSenderInfo(SenderRequest senderRequest) {
-        return senderService.senderInfo("SID" + (senderRepository.count()+1),senderRequest.getName(),senderRequest.getPhoneNumber(),senderRequest.getAddress(),senderRequest.getEmailAddress());
-    }
     @Override
     public Review addReview(ReviewRequest reviewRequest) {
         User user = repository.findUserById(reviewRequest.getUserId());
@@ -186,6 +148,8 @@ public class LogisticsServiceImpl implements LogisticsService {
 
         Booking booking = bookingRepository.findBookingByBookingId(reviewRequest.getBookingId());
         if (booking == null) throw new BookingIdNotFound(reviewRequest.getBookingId() + " not found");
+
+
 
         return reviewService.userReview("RID" + (reviewRepository.count()+1),reviewRequest.getUserId(),reviewRequest.getBookingId(),reviewRequest.getComment());
 
@@ -201,6 +165,19 @@ public class LogisticsServiceImpl implements LogisticsService {
         return user.getWallet().getBalance();
 
     }
+
+    @Override
+    public List<Booking> findListOfBookingOf(String username) {
+        User user = findAccountBelongingTo(username);
+
+        List<Booking> bookingList = new ArrayList<>();
+
+        for (Booking booking: bookingRepository.findAll()){
+            if (booking.getUserId().equals(user.getId())) bookingList.add(booking);
+        }
+        return bookingList;
+    }
+
 
     private void validateDepositAmount(BigDecimal amount){
         if (amount.compareTo(BigDecimal.ZERO) <= 0) throw new InvalidDepositAmountException("Error!!!, the amount you are trying to deposit must be greater than 0 \nTry again");

@@ -4,6 +4,7 @@ import africa.xLogistics.data.models.*;
 import africa.xLogistics.dtos.requests.*;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 public interface LogisticsService {
     User register(RegisterRequest registerRequest);
@@ -16,11 +17,12 @@ public interface LogisticsService {
 
   Booking bookService(BookingRequest bookingRequest);
 
-  Receiver addReceiverInfo(ReceiverRequest receiverRequest);
-  Sender addSenderInfo(SenderRequest senderRequest);
-
   Review addReview(ReviewRequest reviewRequest);
   BigDecimal checkWalletBalance(String userId);
+
+  List<Booking> findListOfBookingOf(String userid);
+
+
 
 
 

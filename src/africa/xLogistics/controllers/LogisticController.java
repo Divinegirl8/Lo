@@ -60,34 +60,6 @@ public class LogisticController {
     }
 }
 
-    @PostMapping("/receiverInfo")
-    public ResponseEntity<?> addReceiverInfo(ReceiverRequest receiverRequest){
-        ReceiverResponse receiverResponse = new ReceiverResponse();
-
-        try {
-            Receiver receiver = logisticsService.addReceiverInfo(receiverRequest);
-            receiverResponse.setMessage("Receiver information added, Receiver id is " + receiver.getId());
-            return new ResponseEntity<>(new ApiResponse(true, receiverResponse),HttpStatus.ACCEPTED);
-        }catch (Exception e){
-            receiverResponse.setMessage(e.getMessage());
-            return new ResponseEntity<>(new ApiResponse(false, receiverResponse),HttpStatus.BAD_REQUEST);
-        }
-    }
-
-    @PostMapping("/senderInfo")
-    public  ResponseEntity<?> addSenderInfo(SenderRequest senderRequest){
-        SenderResponse senderResponse = new SenderResponse();
-
-        try {
-            Sender sender = logisticsService.addSenderInfo(senderRequest);
-            senderResponse.setMessage("Sender Information added, Sender id is " + sender.getId());
-            return new ResponseEntity<>(new ApiResponse(true,senderResponse),HttpStatus.CREATED);
-        }catch (Exception exception){
-            senderResponse.setMessage(exception.getMessage());
-            return new ResponseEntity<>(new ApiResponse(false,senderResponse),HttpStatus.BAD_REQUEST);
-        }
-    }
-
 
 @PostMapping("/book")
     public ResponseEntity<?> bookService(@RequestBody BookingRequest bookingRequest){
@@ -108,8 +80,8 @@ public class LogisticController {
         ReviewResponse reviewResponse = new ReviewResponse();
 
         try {
-           Review review = logisticsService.addReview(reviewRequest);
-            reviewResponse.setMessage("successful, review id is "+ review.getReviewId());
+           logisticsService.addReview(reviewRequest);
+            reviewResponse.setMessage("review sent");
             return  new ResponseEntity<>(new ApiResponse(true,reviewResponse),HttpStatus.CREATED);
         } catch (Exception e){
             reviewResponse.setMessage(e.getMessage());
@@ -118,19 +90,26 @@ public class LogisticController {
 }
 
 @GetMapping("/balance/{userId}")
-    public ResponseEntity<?> checkBalance(@PathVariable("userId") String userId){
-        CheckBalanceResponse checkBalanceResponse = new CheckBalanceResponse();
+    public ResponseEntity<?> checkBalance(@PathVariable("userId") String userId) {
+    CheckBalanceResponse checkBalanceResponse = new CheckBalanceResponse();
 
-        try {
-           BigDecimal balance = logisticsService.checkWalletBalance(userId);
-            checkBalanceResponse.setMessage("Balance is " + balance);
-            return new ResponseEntity<>(new ApiResponse(true,checkBalanceResponse),HttpStatus.ACCEPTED);
-        }catch (Exception e){
-            checkBalanceResponse.setMessage(e.getMessage());
-            return new ResponseEntity<>(new ApiResponse(false,checkBalanceResponse), HttpStatus.BAD_REQUEST);
-        }
+    try {
+        BigDecimal balance = logisticsService.checkWalletBalance(userId);
+        checkBalanceResponse.setMessage("Balance is " + balance);
+        return new ResponseEntity<>(new ApiResponse(true, checkBalanceResponse), HttpStatus.ACCEPTED);
+    } catch (Exception e) {
+        checkBalanceResponse.setMessage(e.getMessage());
+        return new ResponseEntity<>(new ApiResponse(false, checkBalanceResponse), HttpStatus.BAD_REQUEST);
+    }
 }
 
-
+    @GetMapping("/bookingHistory/{username}")
+    public Object findBookingBelongingTo (@PathVariable("username") String username){
+        try {
+           return logisticsService.findListOfBookingOf(username);
+        } catch (Exception e) {
+            return e.getMessage();
+        }
+    }
 
 }

@@ -14,4 +14,5 @@ public class Booking {
     private boolean isBooked;
     private String parcelName;
     private LocalDateTime dateTime;
+    private String userId;
 }
