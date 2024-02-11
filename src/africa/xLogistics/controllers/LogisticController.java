@@ -13,10 +13,12 @@ import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 
 @RestController
+
 public class LogisticController {
     @Autowired
     private LogisticsService logisticsService;
 
+    @CrossOrigin(origins = "http://localhost:2000")
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest registerRequest){
         RegisterResponse registerResponse = new RegisterResponse();
